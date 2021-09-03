@@ -33,7 +33,8 @@ int X3 = 0;
 int Y3 = 0;
 int Timer = 0;
 int Minutt = 0;
-int Sekund = 0;
+int Sekund = 0; 
+int lastSekund = 0;
 float Vinkel = 0;
 int an = 0;
 int luna = 0;
@@ -79,6 +80,11 @@ boolean buttonflag = false; // default value for the button flag
 #define buton 12
 char tmp_string[8];
 
+const byte ledPin = 8;
+const byte interruptPin = 2;
+volatile byte state = HIGH;
+
+
 // Tela do Senai ----------------------------------------------------------------
 void draw(void) {
     DateTime now = rtc.now();
@@ -102,20 +108,19 @@ void draw(void) {
       }
     if(str.length() == 17){
         print_senai = "AI"+ str + senai;
-      }
-      if(str.length() == 18){
-        print_senai = "NAI"+ str + senai;
-      }
-      if(str.length() == 19){
-        print_senai = "ENAI"+ str + senai;
-      }
-      if(str.length() >= 20){
-        print_senai = senai;
-        str = "";
-      }
+    }
+    if(str.length() == 18){
+      print_senai = "NAI"+ str + senai;
+    }
+    if(str.length() == 19){
+      print_senai = "ENAI"+ str + senai;
+    }
+    if(str.length() >= 20){
+      print_senai = senai;
+      str = "";
+    }
     
     u8g.drawStr( 2, 27, print_senai.c_str());
-    delay(5);
     u8g.setFontRefHeightText();
     u8g.setFont(u8g_font_chikita);
     u8g.drawStr( 0, 34, "  NEY DAMASCENO FERREIRA");
@@ -147,9 +152,14 @@ void draw(void) {
 
 // Funcao de inicializacao -------------------------------------------------------
 void setup(void) {
+    pinMode(buton,INPUT_PULLUP);//push button on encoder connected to A0 (and GND)
     pinMode(11, INPUT_PULLUP);           // set pin to input with pullup
     pinMode(10, INPUT_PULLUP);           // set pin to input with pullup
-  
+    pinMode(ledPin, OUTPUT);
+    pinMode(interruptPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), blink, FALLING);
+
+    digitalWrite(ledPin, LOW);
     u8g.setFont(u8g_font_6x10);
   
     Serial.begin(9600);
@@ -162,37 +172,37 @@ void setup(void) {
       Serial.println("RTC is NOT running!");
       rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     }
-  
-    pinMode(buton,INPUT);//push button on encoder connected to A0 (and GND)
-    digitalWrite(buton,HIGH); //Pull button high
 }
 
 // Loop principal -----------------------------------------------------------------
 void loop(void) {
-   u8g.setFont(u8g_font_6x10);
-  
-   DateTime now = rtc.now();
-   Timer = now.hour(), DEC;
-   Minutt = now.minute(), DEC;
-   Sekund = now.second(), DEC;
+    u8g.setFont(u8g_font_6x10);
+    DateTime now = rtc.now();
+    Timer = now.hour(), DEC;
+    Minutt = now.minute(), DEC;
+    Sekund = now.second(), DEC;
+    an = now.year(), DEC;
+    luna = now.month(), DEC;
+    zi = now.day(), DEC;
+    zis = now.dayOfTheWeek();
+
+    if( Sekund != lastSekund){
       Serial.print(Timer);
       Serial.print(':');
       Serial.print(Minutt);
       Serial.print(':');
       Serial.print(Sekund);
       Serial.print(" - ");
-      an = now.year(), DEC;
       Serial.print(an);
       Serial.print('/');
-      luna = now.month(), DEC;
       Serial.print(luna);
       Serial.print('/');
-      zi = now.day(), DEC;
       Serial.print(zi);
       Serial.print(" (");
-     zis = now.dayOfTheWeek();
-     Serial.print(daysOfTheWeek[zis]);
+      Serial.print(daysOfTheWeek[zis]);
       Serial.println(") ");
+      lastSekund = Sekund;
+    }
     
     // picture loop
     u8g.firstPage(); 
@@ -202,35 +212,35 @@ void loop(void) {
     // rebuild the picture after some delay
     delay(100);
   
-   pushlength = pushlengthset;
-   pushlength = getpushlength();
-   delay (10);
-   
-   if (pushlength < pushlengthset) 
-   {
-    //ShortPush ();   
-     Serial.println("short push");
-      // picture loop
-    u8g.firstPage(); 
-    do {
-      draw1();
-    } while( u8g.nextPage() );
-    // rebuild the picture after some delay
-    delay(1000);
-  
-   }
-    //This runs the setclock routine if the knob is pushed for a long time
-    if (pushlength > pushlengthset) {
-         Serial.println("long push");
-         DateTime now = rtc.now();
-         setyeartemp=now.year(),DEC;
-         setmonthtemp=now.month(),DEC;
-         setdaytemp=now.day(),DEC;
-         setoretemp=now.hour(),DEC;
-         setminstemp=now.minute(),DEC;
-         setclock();
-         pushlength = pushlengthset;
+     pushlength = pushlengthset;
+     pushlength = getpushlength();
+     delay (10);
+     
+     if (pushlength < pushlengthset) 
+     {
+      //ShortPush ();   
+       Serial.println("short push");
+        // picture loop
+      u8g.firstPage(); 
+      do {
+        draw1();
+      } while( u8g.nextPage() );
+      // rebuild the picture after some delay
+      delay(1000);
+    
      }
+      //This runs the setclock routine if the knob is pushed for a long time
+      if (pushlength > pushlengthset) {
+           Serial.println("long push");
+           DateTime now = rtc.now();
+           setyeartemp=now.year(),DEC;
+           setmonthtemp=now.month(),DEC;
+           setdaytemp=now.day(),DEC;
+           setoretemp=now.hour(),DEC;
+           setminstemp=now.minute(),DEC;
+           setclock();
+           pushlength = pushlengthset;
+       }
 }
 
 // subroutine to return the length of the button push. -----------------------------------
@@ -245,7 +255,6 @@ int getpushlength() {
      pushlength = pushstop - pushstart;
      buttonflag = false;
     }
-    Serial.println("_");
     return pushlength;
 }
 
@@ -489,4 +498,17 @@ int setmins () {
         u8g.drawStr(25, 40, tmp_string);
     } while( u8g.nextPage() ); 
     setmins();
+}
+
+// Funcao para inverter o estado do LED quando houver uma interrupcao e acionar o LED
+void blink() {
+    static unsigned long last_interrupt_time = 0;
+    unsigned long interrupt_time = millis();
+    /// Debounce da interrupcao
+    if (interrupt_time - last_interrupt_time > 200){
+        Serial.print("LED interruption \n");
+        digitalWrite(ledPin, state);
+        state = !state;
+    }
+    last_interrupt_time = interrupt_time;
 }
