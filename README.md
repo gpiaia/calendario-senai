@@ -11,7 +11,7 @@ OBS: a imagem deve ser P&B sem níveis de cinza, somente preto ou branco. Isso m
 https://marlinfw.org/tools/u8glib/converter.html
 
 E para isso, selecionar:
-Marlin 2.x, Light, Inverter e Bitmap
+Marlin 2.x, Light, Inverter, ASCII Art e Bitmap
 
 
 ## Esquemático
