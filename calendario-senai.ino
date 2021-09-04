@@ -11,6 +11,7 @@ Baseado no sketch https://create.arduino.cc/projecthub/user0035382/adjusting-clo
 #include <Wire.h>
 #include "RTClib.h"
 #include "U8glib.h"
+#include <TimerOne.h>
 
 // Modulo RTC DS1307 ligado as portas A4 e A5 do Arduino ------------------------
 RTC_DS1307 rtc;
@@ -20,9 +21,6 @@ int display = 1;
 
 // Defines e variaveis  ------------------------------------------------ --------
 char daysOfTheWeek[7][12] = {"Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"};
-int loop_cnt = 0;
-String senai = "SENAI";
-String print_senai = "";
 int logo_step = 0;
 int X = 0;
 int Y = 0;
@@ -117,16 +115,6 @@ void draw(void) {
     u8g.drawBitmapP(logo_step-128, 1, 16, 23, logo_senai);
     u8g.drawBitmapP(logo_step, 1, 16, 23, logo_senai);
 
-    if (loop_cnt >= 3){
-      logo_step += 1;
-      loop_cnt = 0;
-    } else{
-      loop_cnt += 1;
-    }
-    if(logo_step == 128){
-      logo_step = 0;
-    }
-
     u8g.setFontRefHeightText();
     u8g.setFont(u8g_font_chikita);
     u8g.drawStr( 0, 31, "  NEY DAMASCENO FERREIRA");
@@ -164,6 +152,9 @@ void setup(void) {
     pinMode(ledPin, OUTPUT);
     pinMode(interruptPin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(interruptPin), blink, FALLING);
+
+    Timer1.initialize(150000); // inicializar timer com período de 150 ms
+    Timer1.attachInterrupt(logo_cnt); // anexa função a ser excutada a cada período
 
     digitalWrite(ledPin, LOW);
     u8g.setFont(u8g_font_6x10);
@@ -517,4 +508,12 @@ void blink() {
         state = !state;
     }
     last_interrupt_time = interrupt_time;
+}
+
+// Funcao para incrementar o deslocamento do logo
+void logo_cnt(){
+    logo_step += 1;
+    if(logo_step > 128){
+      logo_step = 0;
+    }
 }
